@@ -13,4 +13,4 @@
 
 //go:build !byollvm
 
-package llvm_test
+package llvm

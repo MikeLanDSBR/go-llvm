@@ -1,65 +1,69 @@
-package llvm
+package llvm_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/MikeLanDSBR/go-llvm" // importa o pacote principal
+)
 
 func TestPasses(t *testing.T) {
-	InitializeNativeTarget()
-	InitializeNativeAsmPrinter()
+	llvm.InitializeNativeTarget()
+	llvm.InitializeNativeAsmPrinter()
 
-	ctx := NewContext()
+	ctx := llvm.NewContext()
 
 	mod := ctx.NewModule("fac_module")
 
-	fac_args := []Type{ctx.Int32Type()}
-	fac_type := FunctionType(ctx.Int32Type(), fac_args, false)
-	fac := AddFunction(mod, "fac", fac_type)
-	fac.SetFunctionCallConv(CCallConv)
+	fac_args := []llvm.Type{ctx.Int32Type()}
+	fac_type := llvm.FunctionType(ctx.Int32Type(), fac_args, false)
+	fac := llvm.AddFunction(mod, "fac", fac_type)
+	fac.SetFunctionCallConv(llvm.CCallConv)
 	n := fac.Param(0)
 
-	entry := AddBasicBlock(fac, "entry")
-	iftrue := AddBasicBlock(fac, "iftrue")
-	iffalse := AddBasicBlock(fac, "iffalse")
-	end := AddBasicBlock(fac, "end")
+	entry := llvm.AddBasicBlock(fac, "entry")
+	iftrue := llvm.AddBasicBlock(fac, "iftrue")
+	iffalse := llvm.AddBasicBlock(fac, "iffalse")
+	end := llvm.AddBasicBlock(fac, "end")
 
 	builder := ctx.NewBuilder()
 	defer builder.Dispose()
 
 	builder.SetInsertPointAtEnd(entry)
-	If := builder.CreateICmp(IntEQ, n, ConstInt(ctx.Int32Type(), 0, false), "cmptmp")
+	If := builder.CreateICmp(llvm.IntEQ, n, llvm.ConstInt(ctx.Int32Type(), 0, false), "cmptmp")
 	builder.CreateCondBr(If, iftrue, iffalse)
 
 	builder.SetInsertPointAtEnd(iftrue)
-	res_iftrue := ConstInt(ctx.Int32Type(), 1, false)
+	res_iftrue := llvm.ConstInt(ctx.Int32Type(), 1, false)
 	builder.CreateBr(end)
 
 	builder.SetInsertPointAtEnd(iffalse)
-	n_minus := builder.CreateSub(n, ConstInt(ctx.Int32Type(), 1, false), "subtmp")
-	call_fac_args := []Value{n_minus}
+	n_minus := builder.CreateSub(n, llvm.ConstInt(ctx.Int32Type(), 1, false), "subtmp")
+	call_fac_args := []llvm.Value{n_minus}
 	call_fac := builder.CreateCall(fac_type, fac, call_fac_args, "calltmp")
 	res_iffalse := builder.CreateMul(n, call_fac, "multmp")
 	builder.CreateBr(end)
 
 	builder.SetInsertPointAtEnd(end)
 	res := builder.CreatePHI(ctx.Int32Type(), "result")
-	phi_vals := []Value{res_iftrue, res_iffalse}
-	phi_blocks := []BasicBlock{iftrue, iffalse}
+	phi_vals := []llvm.Value{res_iftrue, res_iffalse}
+	phi_blocks := []llvm.BasicBlock{iftrue, iffalse}
 	res.AddIncoming(phi_vals, phi_blocks)
 	builder.CreateRet(res)
 
-	err := VerifyModule(mod, ReturnStatusAction)
+	err := llvm.VerifyModule(mod, llvm.ReturnStatusAction)
 	if err != nil {
 		t.Errorf("Error verifying module: %s", err)
 		return
 	}
 
-	targ, err := GetTargetFromTriple(DefaultTargetTriple())
+	targ, err := llvm.GetTargetFromTriple(llvm.DefaultTargetTriple())
 	if err != nil {
 		t.Error(err)
 	}
 
-	mt := targ.CreateTargetMachine(DefaultTargetTriple(), "", "", CodeGenLevelDefault, RelocDefault, CodeModelDefault)
+	mt := targ.CreateTargetMachine(llvm.DefaultTargetTriple(), "", "", llvm.CodeGenLevelDefault, llvm.RelocDefault, llvm.CodeModelDefault)
 
-	pbo := NewPassBuilderOptions()
+	pbo := llvm.NewPassBuilderOptions()
 	defer pbo.Dispose()
 
 	t.Run("no error running default pass", func(t *testing.T) {
