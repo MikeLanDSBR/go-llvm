@@ -1,3 +1,3 @@
-module tinygo.org/x/go-llvm
+module github.com/MikeLanDSBR/go-llvm
 
 go 1.14
