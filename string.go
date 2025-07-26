@@ -1,18 +1,9 @@
-//===- string.go - Stringer implementation for Type -----------------------===//
-//
-// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
-// See https://llvm.org/LICENSE.txt for license information.
-// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
-//
-//===----------------------------------------------------------------------===//
-//
-// This file implements the Stringer interface for the Type type.
-//
-//===----------------------------------------------------------------------===//
-
 package llvm
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 func (t TypeKind) String() string {
 	switch t {
@@ -44,8 +35,9 @@ func (t TypeKind) String() string {
 		return "VectorTypeKind"
 	case MetadataTypeKind:
 		return "MetadataTypeKind"
+	default: // Adicionado: Este caso captura qualquer TypeKind não mapeado
+		return fmt.Sprintf("UNKNOWN_TYPE_KIND(%d)", t) // Retorna uma string descritiva em vez de pânico
 	}
-	panic("unreachable")
 }
 
 func (t Type) String() string {
@@ -64,13 +56,22 @@ func (ts *typeStringer) typeString(t Type) string {
 
 	k := t.TypeKind()
 	s := k.String()
-	s = s[:len(s)-len("Kind")]
+	// Apenas remove "Kind" se a string não for "UNKNOWN_TYPE"
+	if !strings.HasPrefix(s, "UNKNOWN_TYPE_KIND") {
+		s = s[:len(s)-len("Kind")]
+	}
 
 	switch k {
 	case ArrayTypeKind:
 		s += fmt.Sprintf("(%v[%v])", ts.typeString(t.ElementType()), t.ArrayLength())
 	case PointerTypeKind:
-		s += fmt.Sprintf("(%v)", ts.typeString(t.ElementType()))
+		// Para PointerTypeKind, verifica se ElementType() é válido antes de chamar typeString
+		elementType := t.ElementType()
+		if !elementType.IsNil() { // Verifica se o tipo do elemento não é nulo
+			s += fmt.Sprintf("(%v)", ts.typeString(elementType))
+		} else {
+			s += "(nil)" // Ou outra representação para tipo de elemento nulo
+		}
 	case FunctionTypeKind:
 		params := t.ParamTypes()
 		s += "("
