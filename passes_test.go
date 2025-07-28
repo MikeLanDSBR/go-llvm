@@ -3,7 +3,7 @@ package llvm_test
 import (
 	"testing"
 
-	"github.com/MikeLanDSBR/go-llvm" // importa o pacote principal
+	"github.com/taquion-lang/go-llvm" // importa o pacote principal
 )
 
 func TestPasses(t *testing.T) {

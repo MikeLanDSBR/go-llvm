@@ -3,7 +3,7 @@ package llvm_test
 import (
 	"testing"
 
-	"github.com/MikeLanDSBR/go-llvm"
+	"github.com/taquion-lang/go-llvm"
 )
 
 // Dummy test function.
